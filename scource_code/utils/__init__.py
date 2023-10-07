@@ -1,49 +1,69 @@
+from copy import deepcopy
+from functools import cached_property
+from dataclasses import dataclass
 import numpy as np
-import pygame as pg
-from pygame_menu import pygame_menu as pg_menu
-import sys
 
 TITLE = "Connect 4!"
 BLOCKSIZE = 100
 BG_COLOR = (40, 41, 35)
 
-def check_win(board:np.ndarray) -> int:
-    if not any(0 in x for x in board): return 3
+@dataclass
+class Board():
+    state: np.ndarray
 
-    diags_p = [board[::-1,:].diagonal(i) for i in range(-board.shape[0]+1,board.shape[1])]
-    diags_n = [board.diagonal(i) for i in range(board.shape[1]-1,-board.shape[0],-1)]
+    def __eq__(self, __value:object) -> bool:
+        if self.state.shape != __value.state.shape: return False
+        else: return (self.state == __value.state).all()
     
-    diags = [n.tolist() for n in (diags_p + diags_n)]
-    rows = [list(row) for row in board]
-    cols = [list(board[:, i]) for i in range(board.shape[1])]
+    @property
+    def shape(self):
+        return self.state.shape
+    
+    def check_win(self) -> int:
+        if not any(0 in x for x in self.state): return 3
 
-    all_states = diags + rows + cols
+        sub_states = self._get_sub_states()
 
-    for state in all_states:
-        for i in range(len(state)):
-            try:
+        for _i, state in enumerate(sub_states):
+            for i in range(len(state)):
+                try:
+                    _ = state[i+3]
+                except IndexError: break
+
                 if state[i] == state[i+1] == state[i+2] == state[i+3]:
                     match state[i]:
                         case 0: pass
                         case 1: return 1
                         case 2: return 2
-            except IndexError:
-                pass
-    return 0
+        return 0
 
-def get_valid_locations(board:np.ndarray) -> list:
-        cols = [list(board[:, i]) for i in range(board.shape[1])]
-        col_arr = []
-        for i in range(len(cols)):
-            if np.count_nonzero(board[:, i]) != board.shape[0]:
-                col_arr.append(i)
+    def get_valid_locations(self) -> list[int]:
+        cols = [list(self.state[:, i]) for i in range(self.shape[1])]
+        col_arr = [i for i in range(len(cols)) if np.count_nonzero(self.state[:, i]) != self.shape[0]]
         return col_arr
 
-def get_cols(board:np.ndarray) -> list[np.ndarray]:
-    return [[int(i) for i in list(board[:,c])] for c in range(board.shape[0])]
+    def get_cols(self) -> list[np.ndarray]:
+        return [[int(i) for i in list(self.state[:,c])] for c in range(self.state.shape[0])]
 
-def drop_piece(board:np.ndarray, col:int, player:int) -> np.ndarray:
-    row = (board.shape[0] - np.count_nonzero(board[:, col])) - 1
-    b_copy = np.copy(board)
-    b_copy[row][col] = player
-    return b_copy
+    def drop_piece(self, col:int, player:int, sim=False) -> np.ndarray|None:
+        row = (self.state.shape[0] - np.count_nonzero(self.state[:, col])) - 1
+        if sim:
+            b_copy = self.copy()
+            b_copy.state[row][col] = player
+            return b_copy
+        else: self.state[row, col] = player
+
+    def _get_sub_states(self) -> list[list[int]]:
+        diags_p = [self.state[::-1,:].diagonal(i) for i in range(-self.shape[0]+1,self.shape[1])]
+        diags_n = [self.state.diagonal(i) for i in range(self.shape[1]-1,-self.shape[0],-1)]
+        
+        diags = [n.tolist() for n in (diags_p + diags_n)]
+        rows = [list(row) for _i, row in enumerate(self.state)]
+        cols = [list(self.state[:, i]) for i in range(self.shape[1])]
+        sub_states = diags + rows + cols
+        return sub_states
+    
+    def copy(self):
+        return deepcopy(self)
+    
+    
