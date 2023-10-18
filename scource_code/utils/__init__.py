@@ -1,7 +1,8 @@
 from copy import deepcopy
-from functools import cached_property
 from dataclasses import dataclass
 import numpy as np
+from numpy import ndarray, arange, array
+from pandas import DataFrame
 
 TITLE = "Connect 4!"
 BLOCKSIZE = 100
@@ -9,7 +10,7 @@ BG_COLOR = (40, 41, 35)
 
 @dataclass
 class Board():
-    state: np.ndarray
+    state: ndarray
 
     def __eq__(self, __value:object) -> bool:
         if self.state.shape != __value.state.shape: return False
@@ -25,7 +26,8 @@ class Board():
         sub_states = self._get_sub_states()
 
         for _i, state in enumerate(sub_states):
-            for i in range(len(state)):
+            state_size = len(state)
+            for i in np.arange(state_size):
                 try:
                     _ = state[i+3]
                 except IndexError: break
@@ -38,12 +40,12 @@ class Board():
         return 0
 
     def get_valid_locations(self) -> list[int]:
-        cols = [list(self.state[:, i]) for i in range(self.shape[1])]
-        col_arr = [i for i in range(len(cols)) if np.count_nonzero(self.state[:, i]) != self.shape[0]]
+        cols = [self.state[:, i] for i in arange(self.shape[1])]
+        col_arr = [i for i in arange(len(cols)) if np.count_nonzero(self.state[:, i]) != self.shape[0]]
         return col_arr
 
-    def get_cols(self) -> list[np.ndarray]:
-        return [[int(i) for i in list(self.state[:,c])] for c in range(self.state.shape[0])]
+    def get_cols(self) -> list[ndarray]:
+        return [[int(i) for i in self.state[:,c]] for c in arange(self.state.shape[0])]
 
     def drop_piece(self, col:int, player:int, sim=False) -> np.ndarray|None:
         row = (self.state.shape[0] - np.count_nonzero(self.state[:, col])) - 1
@@ -54,13 +56,12 @@ class Board():
         else: self.state[row, col] = player
 
     def _get_sub_states(self) -> list[list[int]]:
-        diags_p = [self.state[::-1,:].diagonal(i) for i in range(-self.shape[0]+1,self.shape[1])]
-        diags_n = [self.state.diagonal(i) for i in range(self.shape[1]-1,-self.shape[0],-1)]
-        
-        diags = [n.tolist() for n in (diags_p + diags_n)]
-        rows = [list(row) for _i, row in enumerate(self.state)]
-        cols = [list(self.state[:, i]) for i in range(self.shape[1])]
-        sub_states = diags + rows + cols
+        diags_p = [self.state[::-1,:].diagonal(i) for i in arange(-self.shape[0]+1,self.shape[1])]
+        diags_n = [self.state.diagonal(i) for i in arange(self.shape[1]-1,-self.shape[0],-1)]
+        rows = [row for _i, row in enumerate(self.state)]
+        cols = [self.state[:, i] for i in arange(self.shape[1])]
+
+        sub_states = diags_p + diags_n + rows + cols
         return sub_states
     
     def copy(self):

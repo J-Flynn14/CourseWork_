@@ -1,5 +1,6 @@
 from utils import *
 
+
 class MinimaxAgent:
     @staticmethod
     def get_score(board:Board, player:int) -> int:
@@ -11,13 +12,15 @@ class MinimaxAgent:
         sub_states = board._get_sub_states()
 
         for _i, state in enumerate(sub_states):
-            for i in range(len(state)):
+            state_size = len(state)
+            for i in arange(state_size):
                 try:
                     _ = state[i+3]
                 except IndexError: break
-                window = [state[i],state[i+1],state[i+2],state[i+3]]
-                player_count = window.count(player)
-                zero_count = window.count(0)
+
+                w = np.array([state[i],state[i+1],state[i+2],state[i+3]])
+                player_count = len(w[w==player])
+                zero_count = len(w[w==0])
 
                 if player_count == 4:
                     score += 100
@@ -25,7 +28,7 @@ class MinimaxAgent:
                     score += 5
                 elif player_count == 2 and zero_count == 2:
                     score += 2
-                elif window.count(opp_player) == 3 and zero_count == 1:
+                elif len(w[w==opp_player]) == 3 and zero_count == 1:
                     score -= 50
 
         center_array = [int(i) for i in list(board.state[:, board.shape[0]//2])]
@@ -80,4 +83,4 @@ class MinimaxAgent:
                 if alpha >= beta:
                     break
 
-            return column, value
+            return column, value 
